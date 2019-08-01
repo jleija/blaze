@@ -1,5 +1,3 @@
---local mm = require'mm'
-
 describe("markup", function()
     describe("behavior", function()
         local markup = require("markup")()
@@ -64,32 +62,54 @@ describe("markup", function()
                 assert.is.falsy(t.children[7])
             end)
         end)
+        describe("metatables not supported", function()
+            local t = { a = { b = { c = 4 } } }
+            local mt = { }
+            setmetatable(t.a.b, mt)
+
+            it("errors out when the input table has a metatable", function()
+                assert.is.error(function() markup(t) end, "tables with metatables are not supported yet. In element 'b'")
+            end)
+        end)
     end)
-    describe("custom naming to avoid name-clashes with user tables", function()
-        local markup = require("markup"){
-            key = "name",
-            children = "elements",
-            parent = "up"
-        }
-        local t = { a = { b = { c = 4 } } }
-        markup(t)
+    describe("name-clashing avoidance", function()
+        describe("markup aliasing", function()
+            local markup = require("markup"){
+                key = "name",
+                children = "elements",
+                parent = "up",
+                root_key = "home"
+            }
+            local t = { a = { b = { c = 4 } } }
+            markup(t)
 
-        it("uses custom key accessor", function()
-            assert.is.equal("b", t.a.b.name)
-            assert.is.equal("root", t.name)
-        end)
-        it("uses custom parent accessor", function()
-            assert.is.equal(t, t.a.up)
-            assert.is.equal(t.a, t.a.b.up)
-        end)
-        it("uses custom children accessor", function()
-            assert.is.equal(1, #t.elements)
-            assert.is.equal(1, #t.a.elements)
-            -- only tables are considered elements
-            assert.is.equal(0, #t.a.b.elements)
+            it("uses custom key accessor", function()
+                assert.is.equal("b", t.a.b.name)
+                assert.is.equal("home", t.name)
+            end)
+            it("uses custom parent accessor", function()
+                assert.is.equal(t, t.a.up)
+                assert.is.equal(t.a, t.a.b.up)
+            end)
+            it("uses custom children accessor", function()
+                assert.is.equal(1, #t.elements)
+                assert.is.equal(1, #t.a.elements)
+                -- only tables are considered elements
+                assert.is.equal(0, #t.a.b.elements)
 
-            assert.is.equal(t.a, t.elements[1])
-            assert.is.equal(t.a.b, t.elements[1].elements[1])
+                assert.is.equal(t.a, t.elements[1])
+                assert.is.equal(t.a.b, t.elements[1].elements[1])
+            end)
+        end)
+        it("errors when the original tree/table has a conflicting element", function()
+            local markup = require("markup")()
+            local t = { a = { key = { c = 4 } } }
+
+            assert.is.error(function() markup(t) end, "Key 'key' clashes with markup key, in element 'a'. Use constructor to override markup words/keys")
+
+            local t2 = { a = { b = { parent = 4 } } }
+
+            assert.is.error(function() markup(t2) end, "Key 'parent' clashes with markup key, in element 'b'. Use constructor to override markup words/keys")
         end)
     end)
 end)
