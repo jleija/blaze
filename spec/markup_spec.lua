@@ -43,12 +43,12 @@ describe("markup", function()
         end)
         describe("children sorting", function()
             local t = {
-                x = { },
                 { a = 1 },
-                y = { },
                 { b = 2 },
-                z = { },
                 { c = 3 },
+                z = { "z" },
+                x = { "x" },
+                y = { "y" },
             }
             markup(t)
 
@@ -56,10 +56,9 @@ describe("markup", function()
                 assert.is.equal(t[1], t.children[1])
                 assert.is.equal(t[2], t.children[2])
                 assert.is.equal(t[3], t.children[3])
-                assert.is.truthy(t.children[4])
-                assert.is.truthy(t.children[5])
-                assert.is.truthy(t.children[6])
-                assert.is.falsy(t.children[7])
+                assert.is.equal(t.x, t.children[4])
+                assert.is.equal(t.y, t.children[5])
+                assert.is.equal(t.z, t.children[6])
             end)
         end)
         describe("metatables not supported", function()
@@ -68,7 +67,24 @@ describe("markup", function()
             setmetatable(t.a.b, mt)
 
             it("errors out when the input table has a metatable", function()
-                assert.is.error(function() markup(t) end, "tables with metatables are not supported yet. In element 'b'")
+                assert.is.error(function() markup(t) end, 
+                    "tables with metatables are not supported yet. In element 'b'")
+            end)
+        end)
+        describe("function or table keys are not supported", function()
+            it("errors out when the input table has a table key", function()
+                local key_t = {}
+                local t = { a = { [key_t] = { c = 4 } } }
+
+                assert.is.error(function() markup(t) end, 
+                    "Invalid key of type table, in element 'a'")
+            end)
+            it("errors out when the input table has a function key", function()
+                local key_fn = function() end
+                local t = { [key_fn] = { b = { c = 4 } } }
+
+                assert.is.error(function() markup(t, "top") end, 
+                    "Invalid key of type function, in element 'top'")
             end)
         end)
     end)
@@ -105,11 +121,13 @@ describe("markup", function()
             local markup = require("markup")()
             local t = { a = { key = { c = 4 } } }
 
-            assert.is.error(function() markup(t) end, "Key 'key' clashes with markup key, in element 'a'. Use constructor to override markup words/keys")
+            assert.is.error(function() markup(t) end, 
+                "Key 'key' clashes with markup key, in element 'a'. Use constructor to override markup words/keys")
 
             local t2 = { a = { b = { parent = 4 } } }
 
-            assert.is.error(function() markup(t2) end, "Key 'parent' clashes with markup key, in element 'b'. Use constructor to override markup words/keys")
+            assert.is.error(function() markup(t2) end, 
+                "Key 'parent' clashes with markup key, in element 'b'. Use constructor to override markup words/keys")
         end)
     end)
 end)

@@ -67,17 +67,28 @@ local function new_markup(markup_aliases)
             end
         end
 
-        -- insert second the table (non-numeric) elements
+        -- insert second the table (non-numeric) elements in ascending order
+        -- (to enforce predictable order)
+        local named_keys = {}
         for k,v in pairs(t) do
             if reserved_keys[k] then
                 error("Key '" .. k .. "' clashes with markup key, in element '" 
                         .. key .. "'. Use constructor to override markup words/keys")
             end
+            if type(k) == "table" or type(k) == "function" then
+                error("Invalid key of type " .. type(k) .. ", in element '"
+                        .. key .. "'")
+            end
             if type(v) == "table" and (type(k) ~= "number" or k > len or k < 1) then
-                markup(v, k, t)
-                if children_alias then
-                    table.insert(t[children_alias], v)
-                end
+                table.insert(named_keys, k)
+            end
+        end
+        table.sort(named_keys)
+        for _, k in ipairs(named_keys) do
+            local v = t[k]
+            markup(v, k, t)
+            if children_alias then
+                table.insert(t[children_alias], v)
             end
         end
 
