@@ -1,3 +1,10 @@
+local function is_empty(t)
+    for _, _ in pairs(t) do
+        return false
+    end
+    return true
+end
+
 local function new_markup(config)
     config = config or {}
     -- nil gets defaulted and false is for not including it in metatable
@@ -23,10 +30,13 @@ local function new_markup(config)
         local marked = {}
 
         local function markup_index(t, key, parent)
-            local owner = ownership[key] or plurals[key] and key
-            if not marked[t] and (parent and owner and parent[owner] 
-                    or not parent 
-                    or not owner) then
+            local owner = ownership[key]
+            if not marked[t] and (not parent 
+                    or owner and parent[owner] 
+                    or is_empty(plurals) and is_empty(ownership)
+                    or plurals[parent.key] 
+                       or parent.parent and plurals[parent.parent.key]
+                    or type(key) ~= "number" and not owner) then
                 key = key or root_alias
                 local old_mt = getmetatable(t)
 

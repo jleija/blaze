@@ -124,6 +124,25 @@ describe("markup", function()
                 assert.is.equal(t.B, t.B.b.parent)
                 assert.is.equal(t.B, t.A.b.parent)
             end)
+            it("can establish ownership in arrays through plurals", function()
+                local markup = require("markup")(
+                    { plurals = { B = "b"} })
+
+                local x = { }
+                local y = { }
+                local t = { x, y, { A = { x, y } }, 
+                                  { B = { x, y } }, 
+                                  { C = { x, y } } }
+                markup(t)
+                assert.is.equal(t[4].B, t[4].B[1].parent)
+                assert.is.equal(t[4].B, t[4].B[2].parent)
+
+                assert.is.equal(t[4].B, t[3].A[1].parent)
+                assert.is.equal(t[4].B, t[3].A[2].parent)
+
+                assert.is.equal(t[4].B, t[1].parent)
+                assert.is.equal(t[4].B, t[2].parent)
+            end)
         end)
         describe("children sorting", function()
             local t = {
