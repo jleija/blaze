@@ -1,15 +1,17 @@
 local marked = {}
 
-local function new_markup(markup_aliases)
-    markup_aliases = markup_aliases or {}
+local function new_markup(config)
+    config = config or {}
     -- nil gets defaulted and false is for not including it in metatable
-    local key_alias = markup_aliases.key 
-                      or markup_aliases.key == nil and "key" 
-    local parent_alias = markup_aliases.parent 
-                         or markup_aliases.parent == nil and "parent" 
-    local children_alias = markup_aliases.children 
-                           or markup_aliases.children == nil and "children" 
-    local root_alias = markup_aliases.root_key or "root"
+    local key_alias = config.key_alias 
+                      or config.key_alias == nil and "key" 
+    local parent_alias = config.parent_alias 
+                         or config.parent_alias == nil and "parent" 
+    local children_alias = config.children_alias 
+                           or config.children_alias == nil and "children" 
+    local root_alias = config.root_key_alias 
+                        or config.root_key_alias == nil and "root"
+    local plurals = config.plurals or {}
 
     local reserved_keys = {}
     if key_alias then reserved_keys[key_alias] = true end
@@ -39,8 +41,25 @@ local function new_markup(markup_aliases)
                     [marked] = true,
                     __index = {}
                 }
-                if key_alias then
+                if key_alias and type(key) == "string" then
                     mt.__index[key_alias] = key
+                end
+                if key_alias and type(key) == "number" then
+                    assert(parent, "Can't give a singular key name at root array")
+                    -- TODO: some features are dependent on having some
+                    -- navigation like this one, where parent_alias is
+                    -- necessary to resolve plurals in arrays.
+                    -- Think about this and find a good solution
+                    assert(parent_alias, "for now a parent_alias is necessary")
+                    local p = parent
+                    while p and not plurals[p[key_alias]] do
+                        p = p[parent_alias]
+                    end
+                    if p then
+                        mt.__index[key_alias] = plurals[p[key_alias]]
+                    else
+                        mt.__index[key_alias] = key
+                    end
                 end
                 if parent_alias then
                     mt.__index[parent_alias] = parent
@@ -49,6 +68,18 @@ local function new_markup(markup_aliases)
                     mt.__index[children_alias] = {}
                 end
                 setmetatable(prev, mt)
+                if parent then
+                    local mt_mt = {
+                        __index = function(t, k)
+                            local p = t
+                            while p and p[key_alias] ~= k do
+                                p = p[parent_alias]
+                            end
+                            return p
+                        end
+                    }
+                    setmetatable(mt.__index, mt_mt)
+                end
             end
             return t
         end

@@ -41,6 +41,49 @@ describe("markup", function()
                 assert.is.equal(4, t.a.b.c)
             end)
         end)
+        describe("auto assigned back/upwards references", function()
+            it("creates parent key reference in children", function()
+                local t = { a = { b = { c = 4 } } }
+                markup(t)
+
+                assert.is.equal(t.a, t.a.b.a)
+            end)
+            it("creates parent key reference in children across intermediate arrays", function()
+                local t = { a = { array = {
+                                    { b = 1 },
+                                    { c = 2 }
+                                    } } }
+                markup(t)
+
+                assert.is.equal(t.a, t.a.array[1].a)
+                assert.is_nil(rawget(t.a.array[1], "a"))
+                assert.is.equal(t.a, t.a.array[2].a)
+
+                assert.is.equal(t.a, t.a.array.a)
+            end)
+            it("uses the singular key for elements in an array", function()
+                local markup = require("markup")(
+                    { plurals = { parts = "part"} })
+                local t = { a = { parts = {
+                                    { b = 1 },
+                                    { c = { d = { e = 2 } }, f = 3 }
+                                    } } }
+                markup(t)
+                assert.is.equal("part", t.a.parts[1].key)
+                assert.is.equal(3, t.a.parts[2].c.d.part.f)
+                assert.is.equal(2, #t.a.parts[2].c.d.parts)
+            end)
+            it("uses the singular key for elements in an multidimensional array", function()
+                local markup = require("markup")(
+                    { plurals = { elements = "element"} })
+                local matrix = { elements = { 
+                                    { { 1, 2, 3 }, { 4, 5, 6 } }
+                                 }}
+                markup(matrix)
+                assert.is.equal("element", matrix.elements[1][2].key)
+                assert.is.equal(matrix, matrix.elements[1][2].root)
+            end)
+        end)
         describe("children sorting", function()
             local t = {
                 { a = 1 },
@@ -91,10 +134,10 @@ describe("markup", function()
     describe("name-clashing avoidance", function()
         describe("markup aliasing", function()
             local markup = require("markup"){
-                key = "name",
-                children = "elements",
-                parent = "up",
-                root_key = "home"
+                key_alias = "name",
+                children_alias = "elements",
+                parent_alias = "up",
+                root_key_alias = "home"
             }
             local t = { a = { b = { c = 4 } } }
             markup(t)
