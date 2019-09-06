@@ -1,5 +1,3 @@
-local marked = {}
-
 local function new_markup(config)
     config = config or {}
     -- nil gets defaulted and false is for not including it in metatable
@@ -12,6 +10,7 @@ local function new_markup(config)
     local root_alias = config.root_key_alias 
                         or config.root_key_alias == nil and "root"
     local plurals = config.plurals or {}
+    local ownership = config.ownership or {}
 
     local reserved_keys = {}
     if key_alias then reserved_keys[key_alias] = true end
@@ -21,24 +20,18 @@ local function new_markup(config)
     local function markup(t, key, parent)
         assert(type(t) == "table")
 
+        local marked = {}
+
         local function markup_index(t, key, parent)
-            key = key or root_alias
-            local prev = t
-            local mt = getmetatable(t)
-            assert(not mt, 
-                    "tables with metatables are not supported yet. In element '"
-                    .. key .. "'")
---            -- NOTE: to enable tables with metatables, there needs to be
---            -- a solution to duplicated key within other metatables and the 
---            -- problem of a function-type __index metatable. So maybe another
---            -- day.
---            while mt and not mt[marked] do
---                prev = mt.__index
---                mt = getmetatable(mt.__index)
---            end
-            if not mt then
-                mt = {
-                    [marked] = true,
+            local owner = ownership[key] or plurals[key] and key
+            if not marked[t] and (parent and owner and parent[owner] 
+                    or not parent 
+                    or not owner) then
+                key = key or root_alias
+                local old_mt = getmetatable(t)
+
+                local mt = {
+                    marked = marked,
                     __index = {}
                 }
                 if key_alias and type(key) == "string" then
@@ -67,7 +60,7 @@ local function new_markup(config)
                 if children_alias then
                     mt.__index[children_alias] = {}
                 end
-                setmetatable(prev, mt)
+                setmetatable(t, mt)
                 if parent then
                     local mt_mt = {
                         __index = function(t, k)
@@ -78,8 +71,13 @@ local function new_markup(config)
                             return p
                         end
                     }
+                    setmetatable(mt_mt, old_mt)
                     setmetatable(mt.__index, mt_mt)
+                else
+                    setmetatable(mt.__index, old_mt)
                 end
+
+                marked[t] = true
             end
             return t
         end
@@ -92,7 +90,7 @@ local function new_markup(config)
             len = len + 1
             if type(v) == "table" then
                 markup(v, i, t)
-                if children_alias then
+                if children_alias and t[children_alias] then
                     table.insert(t[children_alias], v)
                 end
             end
@@ -118,7 +116,7 @@ local function new_markup(config)
         for _, k in ipairs(named_keys) do
             local v = t[k]
             markup(v, k, t)
-            if children_alias then
+            if children_alias and t[children_alias] then
                 table.insert(t[children_alias], v)
             end
         end

@@ -84,6 +84,47 @@ describe("markup", function()
                 assert.is.equal(matrix, matrix.elements[1][2].root)
             end)
         end)
+        describe("table metatables", function()
+            it("precedes other metatables with its metatable shadowing them", function()
+                local t = {}
+                local t_mt = { __index = { x = 5 } }
+                setmetatable(t, t_mt)
+                markup(t)
+                assert.is.equal("root", t.key)
+                assert.is.equal(5, t.x)
+            end)
+        end)
+        describe("element ownership", function()
+            it("must specify single ownership in diamond relationships", function()
+                local markup = require("markup")(
+                    { ownership = { a = "A" } })
+
+                local a = { }
+                local t = {
+                    A = { a = a },
+                    B = { a = a },
+                }
+                markup(t)
+                assert.is.equal(t.A, t.A.a.parent)
+                assert.is.equal(t.A, t.B.a.parent)
+            end)
+            it("can specify ownership with mixed/cross elements", function()
+                local markup = require("markup")(
+                    { ownership = { a = "A", b = "B"} })
+
+                local a = { }
+                local b = { }
+                local t = {
+                    A = { a = a, b = b },
+                    B = { a = a, b = b },
+                }
+                markup(t)
+                assert.is.equal(t.A, t.A.a.parent)
+                assert.is.equal(t.A, t.B.a.parent)
+                assert.is.equal(t.B, t.B.b.parent)
+                assert.is.equal(t.B, t.A.b.parent)
+            end)
+        end)
         describe("children sorting", function()
             local t = {
                 { a = 1 },
@@ -102,16 +143,6 @@ describe("markup", function()
                 assert.is.equal(t.x, t.children[4])
                 assert.is.equal(t.y, t.children[5])
                 assert.is.equal(t.z, t.children[6])
-            end)
-        end)
-        describe("metatables not supported", function()
-            local t = { a = { b = { c = 4 } } }
-            local mt = { }
-            setmetatable(t.a.b, mt)
-
-            it("errors out when the input table has a metatable", function()
-                assert.is.error(function() markup(t) end, 
-                    "tables with metatables are not supported yet. In element 'b'")
             end)
         end)
         describe("function or table keys are not supported", function()
