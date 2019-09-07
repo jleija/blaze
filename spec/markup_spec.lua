@@ -53,11 +53,11 @@ describe("markup", function()
 
         end)
         describe("auto naming/key-by-name with id-tags", function()
+            local markup = require("markup")(
+                { id_tags = { A = "name" } })
             pending("a general id-tag is used, when available", function()
             end)
             it("creates string keys for arrays when id_tags is provided for a type of parent", function()
-                local markup = require("markup")(
-                    { id_tags = { A = "name" } })
                 local t = { A = { 
                                   { name = "x", value = 1 },
                                   { name = "y", value = 2 },
@@ -73,7 +73,14 @@ describe("markup", function()
                 assert.is_nil(t.B.x)
                 assert.is_nil(t.B.y)
             end)
-            pending("fails to tag if id-tag is missing", function()
+            it("fails to tag if id-tag is missing", function()
+                local t = { A = { 
+                                  { name = "x", value = 1 },
+                                  { bad_name = "y", value = 2 },
+                                },
+                          }
+                assert.is.error(function() markup(t) end, 
+                    "No id_tag name for element #2 of A")
             end)
             pending("fails to tag if the id-tag is not unique", function()
             end)
