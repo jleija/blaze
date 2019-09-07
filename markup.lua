@@ -16,13 +16,27 @@ local function new_markup(config)
                            or config.children_alias == nil and "children" 
     local root_alias = config.root_key_alias 
                         or config.root_key_alias == nil and "root"
-    local plurals = config.plurals or {}
     local ownership = config.ownership or {}
+
+    local plurals = {}
+    for owned, owner in pairs(ownership) do
+        plurals[owner] = owned
+    end
 
     local reserved_keys = {}
     if key_alias then reserved_keys[key_alias] = true end
     if parent_alias then reserved_keys[parent_alias] = true end
     if children_alias then reserved_keys[children_alias] = true end
+
+    local function is_plural_ancestor(parent)
+        while parent do
+            if plurals[parent.key] then
+                return true
+            end
+            parent = parent.parent
+        end
+        return false
+    end
 
     local function markup(t, key, parent)
         assert(type(t) == "table")
@@ -34,8 +48,7 @@ local function new_markup(config)
             if not marked[t] and (not parent 
                     or owner and parent[owner] 
                     or is_empty(plurals) and is_empty(ownership)
-                    or plurals[parent.key] 
-                       or parent.parent and plurals[parent.parent.key]
+                    or type(key) == "number" and is_plural_ancestor(parent)
                     or type(key) ~= "number" and not owner) then
                 key = key or root_alias
                 local old_mt = getmetatable(t)

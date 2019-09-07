@@ -73,7 +73,7 @@ describe("markup", function()
             end)
             it("uses the singular key for elements in an array", function()
                 local markup = require("markup")(
-                    { plurals = { parts = "part"} })
+                    { ownership = { part = "parts"} })
                 local t = { a = { parts = {
                                     { b = 1 },
                                     { c = { d = { e = 2 } }, f = 3 }
@@ -85,7 +85,7 @@ describe("markup", function()
             end)
             it("uses the singular key for elements in an multidimensional array", function()
                 local markup = require("markup")(
-                    { plurals = { elements = "element"} })
+                    { ownership = { element = "elements"} })
                 local matrix = { elements = { 
                                     { { 1, 2, 3 }, { 4, 5, 6 } }
                                  }}
@@ -134,9 +134,9 @@ describe("markup", function()
                 assert.is.equal(t.B, t.B.b.parent)
                 assert.is.equal(t.B, t.A.b.parent)
             end)
-            it("can establish ownership in arrays through plurals", function()
+            it("can establish ownership in arrays", function()
                 local markup = require("markup")(
-                    { plurals = { B = "b"} })
+                    { ownership = { b = "B"} })
 
                 local x = { }
                 local y = { }
