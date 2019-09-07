@@ -92,46 +92,57 @@ local function new_markup(config)
             return t
         end
 
-        markup_index(t, key, parent)
+        local seen = {}
 
-        -- insert first the array elements
-        local len = 0
-        for i,v in ipairs(t) do
-            len = len + 1
-            if type(v) == "table" then
-                markup(v, i, t)
-                if children_alias and t[children_alias] then
-                    table.insert(t[children_alias], v)
+        local function recursive_markup(t, key, parent)
+            if not seen[t] or not seen[t][parent or "root"] then
+                seen[t] = seen[t] or {}
+                seen[t][parent or "root"] = true
+
+                markup_index(t, key, parent)
+
+                -- insert first the array elements
+                local len = 0
+                for i,v in ipairs(t) do
+                    len = len + 1
+                    if type(v) == "table" then
+                        recursive_markup(v, i, t)
+                        if children_alias and t[children_alias] then
+                            table.insert(t[children_alias], v)
+                        end
+                    end
+                end
+
+                -- insert second the table (non-numeric) elements in ascending order
+                -- (to enforce predictable order)
+                local named_keys = {}
+                for k,v in pairs(t) do
+                    if reserved_keys[k] then
+                        error("Key '" .. k .. "' clashes with markup key, in element '" 
+                                .. key .. "'. Use constructor to override markup words/keys")
+                    end
+                    if type(k) == "table" or type(k) == "function" then
+                        error("Invalid key of type " .. type(k) .. ", in element '"
+                                .. key .. "'")
+                    end
+                    if type(v) == "table" and (type(k) ~= "number" or k > len or k < 1) then
+                        table.insert(named_keys, k)
+                    end
+                end
+                table.sort(named_keys)
+                for _, k in ipairs(named_keys) do
+                    local v = t[k]
+                    recursive_markup(v, k, t)
+                    if children_alias and t[children_alias] then
+                        table.insert(t[children_alias], v)
+                    end
                 end
             end
+
+            return t
         end
 
-        -- insert second the table (non-numeric) elements in ascending order
-        -- (to enforce predictable order)
-        local named_keys = {}
-        for k,v in pairs(t) do
-            if reserved_keys[k] then
-                error("Key '" .. k .. "' clashes with markup key, in element '" 
-                        .. key .. "'. Use constructor to override markup words/keys")
-            end
-            if type(k) == "table" or type(k) == "function" then
-                error("Invalid key of type " .. type(k) .. ", in element '"
-                        .. key .. "'")
-            end
-            if type(v) == "table" and (type(k) ~= "number" or k > len or k < 1) then
-                table.insert(named_keys, k)
-            end
-        end
-        table.sort(named_keys)
-        for _, k in ipairs(named_keys) do
-            local v = t[k]
-            markup(v, k, t)
-            if children_alias and t[children_alias] then
-                table.insert(t[children_alias], v)
-            end
-        end
-
-        return t
+        return recursive_markup(t, root_alias)
     end
 
     return markup

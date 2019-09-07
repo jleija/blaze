@@ -11,6 +11,16 @@ describe("markup", function()
             assert.is.falsy(t.parent)
             assert(0, #t.children)
         end)
+
+        it("can mark circular tables", function()
+            local t = { }
+            local a = { a = t }
+            t.a = a
+
+            markup(t)
+            assert.is.equal("a", t.a.key)
+            assert.is.equal("root", t.key)
+        end)
         describe("a deeper table", function()
             local t = { a = { b = { c = 4 } } }
             markup(t)
@@ -176,8 +186,8 @@ describe("markup", function()
                 local key_fn = function() end
                 local t = { [key_fn] = { b = { c = 4 } } }
 
-                assert.is.error(function() markup(t, "top") end, 
-                    "Invalid key of type function, in element 'top'")
+                assert.is.error(function() markup(t) end, 
+                    "Invalid key of type function, in element 'root'")
             end)
         end)
     end)
