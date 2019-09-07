@@ -84,7 +84,7 @@ local function new_markup(config)
                                       .. " for element #" .. key .. " of " .. parent.key)
                         local parent_mt = getmetatable(parent)
                         assert(parent_mt.marked, "Parent hasn't been marked. This should not happen")
-                        assert(not rawget(parent_mt.__index, name), "Should not have an element with the same name as its id_tag: " .. name .. " for tag " .. id_tag)
+                        assert(not rawget(parent_mt.__index, name), "Duplicated name " .. name .. " in array element #" .. key .. " for " .. parent.key)
                         parent_mt.__index[name] = t
                     end
                 end

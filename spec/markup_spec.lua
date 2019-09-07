@@ -82,7 +82,14 @@ describe("markup", function()
                 assert.is.error(function() markup(t) end, 
                     "No id_tag name for element #2 of A")
             end)
-            pending("fails to tag if the id-tag is not unique", function()
+            it("fails to tag if the id-tag is not unique", function()
+                local t = { A = { 
+                                  { name = "x", value = 1 },
+                                  { name = "x", value = 2 },
+                                },
+                          }
+                assert.is.error(function() markup(t) end, 
+                    "Duplicated name x in array element #2 for A")
             end)
         end)
         describe("auto assigned back/upwards references", function()
