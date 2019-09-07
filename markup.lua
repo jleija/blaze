@@ -17,6 +17,7 @@ local function new_markup(config)
     local root_alias = config.root_key_alias 
                         or config.root_key_alias == nil and "root"
     local ownership = config.ownership or {}
+    local id_tags = config.id_tags or {}
 
     local plurals = {}
     for owned, owner in pairs(ownership) do
@@ -75,6 +76,16 @@ local function new_markup(config)
                         mt.__index[key_alias] = plurals[p[key_alias]]
                     else
                         mt.__index[key_alias] = key
+                    end
+                    local id_tag = id_tags[parent.key]
+                    if id_tag then
+                        local name = rawget(t, id_tag)
+                        assert(name, "No id_tag " .. id_tag 
+                                      .. " for child of " .. parent.key)
+                        local parent_mt = getmetatable(parent)
+                        assert(parent_mt.marked, "Parent hasn't been marked. This should not happen")
+                        assert(not rawget(parent_mt.__index, name), "Should not have an element with the same name as its id_tag: " .. name .. " for tag " .. id_tag)
+                        parent_mt.__index[name] = t
                     end
                 end
                 if parent_alias then

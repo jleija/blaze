@@ -50,6 +50,33 @@ describe("markup", function()
             it("does not affect original values/structure", function()
                 assert.is.equal(4, t.a.b.c)
             end)
+
+        end)
+        describe("auto naming/key-by-name with id-tags", function()
+            pending("a general id-tag is used, when available", function()
+            end)
+            it("creates string keys for arrays when id_tags is provided for a type of parent", function()
+                local markup = require("markup")(
+                    { id_tags = { A = "name" } })
+                local t = { A = { 
+                                  { name = "x", value = 1 },
+                                  { name = "y", value = 2 },
+                                },
+                            B = {
+                                  { name = "x", value = 1 },
+                                  { name = "y", value = 2 },
+                            }
+                          }
+                markup(t)
+                assert.is.equal(1, t.A.x.value)
+                assert.is.equal(2, t.A.y.value)
+                assert.is_nil(t.B.x)
+                assert.is_nil(t.B.y)
+            end)
+            pending("fails to tag if id-tag is missing", function()
+            end)
+            pending("fails to tag if the id-tag is not unique", function()
+            end)
         end)
         describe("auto assigned back/upwards references", function()
             it("creates parent key reference in children", function()
