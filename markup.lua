@@ -77,7 +77,7 @@ local function new_markup(config)
                     else
                         mt.__index[key_alias] = key
                     end
-                    local id_tag = id_tags[parent.key]
+                    local id_tag = id_tags[parent.key] 
                     if id_tag then
                         local name = rawget(t, id_tag)
                         assert(name, "No id_tag " .. id_tag 
@@ -86,6 +86,18 @@ local function new_markup(config)
                         assert(parent_mt.marked, "Parent hasn't been marked. This should not happen")
                         assert(not rawget(parent_mt.__index, name), "Duplicated name " .. name .. " in array element #" .. key .. " for " .. parent.key)
                         parent_mt.__index[name] = t
+                    end
+                    -- optional default global tags
+                    for _, id_tag in ipairs(id_tags) do
+                        if id_tag then
+                            local name = rawget(t, id_tag)
+                            if name then
+                                local parent_mt = getmetatable(parent)
+                                assert(parent_mt.marked, "Parent hasn't been marked. This should not happen")
+                                assert(not rawget(parent_mt.__index, name), "Duplicated name " .. name .. " in array element #" .. key .. " for " .. parent.key)
+                                parent_mt.__index[name] = t
+                            end
+                        end
                     end
                 end
                 if parent_alias then
