@@ -16,6 +16,11 @@ local function new_markup(config)
                            or config.children_alias == nil and "children" 
     local root_alias = config.root_key_alias 
                         or config.root_key_alias == nil and "root"
+    local next_alias = config.next_alias 
+                        or config.next_alias == nil and "next"
+    local prev_alias = config.prev_alias 
+                        or config.prev_alias == nil and "prev"
+
     local ownership = config.ownership or {}
     local id_tags = config.id_tags or {}
 
@@ -97,6 +102,16 @@ local function new_markup(config)
                                 assert(not rawget(parent_mt.__index, name), "Duplicated name " .. name .. " in array element #" .. key .. " for " .. parent.key)
                                 parent_mt.__index[name] = t
                             end
+                        end
+                    end
+
+                    local prev_index = key - 1
+                    local prev_element = rawget(parent, prev_index) 
+                    if prev_element then
+                        local prev_mt = getmetatable(prev_element)
+                        if prev_mt then
+                            prev_mt.__index[next_alias] = t
+                            mt.__index[prev_alias] = prev_element
                         end
                     end
                 end

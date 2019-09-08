@@ -157,6 +157,22 @@ describe("markup", function()
                 assert.is.equal(matrix, matrix.elements[1][2].root)
             end)
         end)
+        describe("array markup for next/prev navigation", function()
+            it("add next and prev to array elements", function()
+                local t = { A = { { a=1 }, { a=2 }, { a=3 } } }
+                markup(t)
+
+                assert.is.equal(t.A[2], t.A[1].next)
+                assert.is.equal(2, t.A[1].next.a)
+                assert.is.equal(3, t.A[2].next.a)
+                assert.is_nil(t.A[3].next)
+
+                assert.is.equal(t.A[1], t.A[2].prev)
+                assert.is.equal(2, t.A[3].prev.a)
+                assert.is.equal(1, t.A[2].prev.a)
+                assert.is_nil(t.A[1].prev)
+            end)
+        end)
         describe("table metatables", function()
             it("precedes other metatables with its metatable shadowing them", function()
                 local t = {}
@@ -260,9 +276,12 @@ describe("markup", function()
                 key_alias = "name",
                 children_alias = "elements",
                 parent_alias = "up",
-                root_key_alias = "home"
+                root_key_alias = "home",
+                next_alias = "forward",
+                prev_alias = "backward"
             }
-            local t = { a = { b = { c = 4 } } }
+            local t = { a = { b = { c = 4 } },
+                        d = { {1}, {2}, {3} } }
             markup(t)
 
             it("uses custom key accessor", function()
@@ -274,13 +293,17 @@ describe("markup", function()
                 assert.is.equal(t.a, t.a.b.up)
             end)
             it("uses custom children accessor", function()
-                assert.is.equal(1, #t.elements)
+                assert.is.equal(2, #t.elements)
                 assert.is.equal(1, #t.a.elements)
                 -- only tables are considered elements
                 assert.is.equal(0, #t.a.b.elements)
 
                 assert.is.equal(t.a, t.elements[1])
                 assert.is.equal(t.a.b, t.elements[1].elements[1])
+            end)
+            it("uses custom next and prev accessors", function()
+                assert.is.equal(t.d[2], t.d[1].forward)
+                assert.is.equal(t.d[2], t.d[3].backward)
             end)
         end)
         it("errors when the original tree/table has a conflicting element", function()
