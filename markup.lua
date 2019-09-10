@@ -61,12 +61,16 @@ local function new_markup(config)
 
                 local mt = {
                     marked = marked,
+                    old_mt = old_mt,
                     __index = {}
                 }
+                if root_alias and not parent then
+                    mt.__index[root_alias] = t
+                end
                 if key_alias and type(key) == "string" then
                     mt.__index[key_alias] = key
                 end
-                if key_alias and type(key) == "number" then
+                if key_alias and type(key) == "number" then -- arrays {{{
                     assert(parent, "Can't give a singular key name at root array")
                     -- TODO: some features are dependent on having some
                     -- navigation like this one, where parent_alias is
@@ -114,7 +118,7 @@ local function new_markup(config)
                             mt.__index[prev_alias] = prev_element
                         end
                     end
-                end
+                end     -- }}}
                 if parent_alias then
                     mt.__index[parent_alias] = parent
                 end
@@ -146,6 +150,10 @@ local function new_markup(config)
         local seen = {}
 
         local function recursive_markup(t, key, parent)
+            -- TODO: this two-level seen does not work for all cases
+            -- (ie. three-or-more-level-similar paths on different branches)
+            -- come up with a real algorithm that solves the problem of delay
+            -- marking vs circular references
             if not seen[t] or not seen[t][parent or "root"] then
                 seen[t] = seen[t] or {}
                 seen[t][parent or "root"] = true
@@ -196,7 +204,19 @@ local function new_markup(config)
         return recursive_markup(t, root_alias)
     end
 
-    return markup
+    local function deblaze(t)
+        local mt = getmetatable(t)
+        assert(mt.marked, "Not a blazed table")
+        for v, _ in pairs(mt.marked) do
+            local mt = getmetatable(v)
+            local old_mt = mt.old_mt
+            setmetatable(v, old_mt)
+        end
+
+        return t
+    end
+
+    return markup, deblaze
 end
 
 return new_markup

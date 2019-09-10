@@ -7,6 +7,7 @@ describe("markup", function()
             markup(t)
 
             assert.is.equal("root", t.key)
+            assert.is.equal("root", t.root.key)
             assert.is.truthy(t.children)
             assert.is.falsy(t.parent)
             assert(0, #t.children)
@@ -45,6 +46,11 @@ describe("markup", function()
                 assert.is.equal(t.a, t.a.b.parent)
                 assert.is.equal(t.a.b, t.a.b.parent.b.parent.b)
                 assert.is.equal(t, t.a.b.parent.parent)
+            end)
+            it("sets #root access all across", function()
+                assert.is.equal(t, t.a.b.root)
+                assert.is.equal(t, t.a.root)
+                assert.is.equal(t, t.root)
             end)
 
             it("does not affect original values/structure", function()
@@ -317,6 +323,37 @@ describe("markup", function()
 
             assert.is.error(function() markup(t2) end, 
                 "Key 'parent' clashes with markup key, in element 'b'. Use constructor to override markup words/keys")
+        end)
+    end)
+    describe("deblazing", function()
+        it("returns a table to its original form after a deblaze", function()
+            local t = { a = { b = 5 } }
+            local mt = { __index = { x = 1, root = "old_root" } }
+
+            setmetatable(t, mt)
+            setmetatable(t.a, mt)
+            assert.is.equal(1, t.x)
+            assert.is.equal("old_root", t.root)
+            assert.is.equal(mt, getmetatable(t))
+
+            local markup, deblaze = require("markup")()
+            markup(t)
+
+            assert.is_not.equal(mt, getmetatable(t))
+
+            assert.is.equal(1, t.x)
+            assert.is.equal("root", t.a.root.key)
+
+            deblaze(t)
+
+            assert.is.equal(1, t.x)
+            assert.is.equal("old_root", t.root)
+            assert.is.equal("old_root", t.a.root)
+
+            assert.is.same({a={b=5}}, t)
+
+            assert.is.equal(mt, getmetatable(t))
+            assert.is.equal(mt, getmetatable(t.a))
         end)
     end)
 end)
