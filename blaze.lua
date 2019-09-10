@@ -5,7 +5,7 @@ local function is_empty(t)
     return true
 end
 
-local function new_markup(config)
+local function new_blaze(config)
     config = config or {}
     -- nil gets defaulted and false is for not including it in metatable
     local key_alias = config.key_alias 
@@ -44,12 +44,12 @@ local function new_markup(config)
         return false
     end
 
-    local function markup(t, key, parent)
+    local function blaze(t, key, parent)
         assert(type(t) == "table")
 
         local marked = {}
 
-        local function markup_index(t, key, parent)
+        local function blaze_index(t, key, parent)
             local owner = ownership[key]
             if not marked[t] and (not parent 
                     or owner and parent[owner] 
@@ -149,7 +149,7 @@ local function new_markup(config)
 
         local seen = {}
 
-        local function recursive_markup(t, key, parent)
+        local function recursive_blaze(t, key, parent)
             -- TODO: this two-level seen does not work for all cases
             -- (ie. three-or-more-level-similar paths on different branches)
             -- come up with a real algorithm that solves the problem of delay
@@ -158,14 +158,14 @@ local function new_markup(config)
                 seen[t] = seen[t] or {}
                 seen[t][parent or "root"] = true
 
-                markup_index(t, key, parent)
+                blaze_index(t, key, parent)
 
                 -- insert first the array elements
                 local len = 0
                 for i,v in ipairs(t) do
                     len = len + 1
                     if type(v) == "table" then
-                        recursive_markup(v, i, t)
+                        recursive_blaze(v, i, t)
                         if children_alias and t[children_alias] then
                             table.insert(t[children_alias], v)
                         end
@@ -177,8 +177,8 @@ local function new_markup(config)
                 local named_keys = {}
                 for k,v in pairs(t) do
                     if reserved_keys[k] then
-                        error("Key '" .. k .. "' clashes with markup key, in element '" 
-                                .. key .. "'. Use constructor to override markup words/keys")
+                        error("Key '" .. k .. "' clashes with blaze key, in element '" 
+                                .. key .. "'. Use constructor to override blaze words/keys")
                     end
                     if type(k) == "table" or type(k) == "function" then
                         error("Invalid key of type " .. type(k) .. ", in element '"
@@ -191,7 +191,7 @@ local function new_markup(config)
                 table.sort(named_keys)
                 for _, k in ipairs(named_keys) do
                     local v = t[k]
-                    recursive_markup(v, k, t)
+                    recursive_blaze(v, k, t)
                     if children_alias and t[children_alias] then
                         table.insert(t[children_alias], v)
                     end
@@ -201,7 +201,7 @@ local function new_markup(config)
             return t
         end
 
-        return recursive_markup(t, root_alias)
+        return recursive_blaze(t, root_alias)
     end
 
     local function deblaze(t)
@@ -216,7 +216,7 @@ local function new_markup(config)
         return t
     end
 
-    return markup, deblaze
+    return blaze, deblaze
 end
 
-return new_markup
+return new_blaze

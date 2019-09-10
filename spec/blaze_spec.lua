@@ -1,10 +1,10 @@
-describe("markup", function()
+describe("blaze", function()
     describe("behavior", function()
-        local markup = require("markup")()
+        local blaze = require("blaze")()
 
         it("marks up an empty table", function()
             local t = {}
-            markup(t)
+            blaze(t)
 
             assert.is.equal("root", t.key)
             assert.is.equal("root", t.root.key)
@@ -18,13 +18,13 @@ describe("markup", function()
             local a = { a = t }
             t.a = a
 
-            markup(t)
+            blaze(t)
             assert.is.equal("a", t.a.key)
             assert.is.equal("root", t.key)
         end)
         describe("a deeper table", function()
             local t = { a = { b = { c = 4 } } }
-            markup(t)
+            blaze(t)
 
             it("tracks keys for table children", function()
                 assert.is.equal("a", t.a.key)
@@ -59,7 +59,7 @@ describe("markup", function()
 
         end)
         describe("auto naming/key-by-name with id-tags", function()
-            local markup = require("markup")(
+            local blaze = require("blaze")(
                 { id_tags = { A = "name" } })
             it("creates string keys for arrays when id_tags is provided for a type of parent", function()
                 local t = { A = { 
@@ -71,14 +71,14 @@ describe("markup", function()
                                   { name = "y", value = 2 },
                             }
                           }
-                markup(t)
+                blaze(t)
                 assert.is.equal(1, t.A.x.value)
                 assert.is.equal(2, t.A.y.value)
                 assert.is_nil(t.B.x)
                 assert.is_nil(t.B.y)
             end)
             it("a general id-tag is used, when available", function()
-                local markup = require("markup")(
+                local blaze = require("blaze")(
                     { id_tags = { "id", A = "name" } })
                 local t = { A = { 
                                   { name = "x", value = 1 },
@@ -93,7 +93,7 @@ describe("markup", function()
                                   { other = "y", value = 2 },
                             }
                           }
-                markup(t)
+                blaze(t)
                 assert.is.equal(1, t.A.x.value)
                 assert.is.equal(2, t.A.y.value)
                 assert.is.equal(1, t.B.x.value)
@@ -107,7 +107,7 @@ describe("markup", function()
                                   { bad_name = "y", value = 2 },
                                 },
                           }
-                assert.is.error(function() markup(t) end, 
+                assert.is.error(function() blaze(t) end, 
                     "No id_tag name for element #2 of A")
             end)
             it("fails to tag if the id-tag is not unique", function()
@@ -116,14 +116,14 @@ describe("markup", function()
                                   { name = "x", value = 2 },
                                 },
                           }
-                assert.is.error(function() markup(t) end, 
+                assert.is.error(function() blaze(t) end, 
                     "Duplicated name x in array element #2 for A")
             end)
         end)
         describe("auto assigned back/upwards references", function()
             it("creates parent key reference in children", function()
                 local t = { a = { b = { c = 4 } } }
-                markup(t)
+                blaze(t)
 
                 assert.is.equal(t.a, t.a.b.a)
             end)
@@ -132,7 +132,7 @@ describe("markup", function()
                                     { b = 1 },
                                     { c = 2 }
                                     } } }
-                markup(t)
+                blaze(t)
 
                 assert.is.equal(t.a, t.a.array[1].a)
                 assert.is_nil(rawget(t.a.array[1], "a"))
@@ -141,32 +141,32 @@ describe("markup", function()
                 assert.is.equal(t.a, t.a.array.a)
             end)
             it("uses the singular key for elements in an array", function()
-                local markup = require("markup")(
+                local blaze = require("blaze")(
                     { ownership = { part = "parts"} })
                 local t = { a = { parts = {
                                     { b = 1 },
                                     { c = { d = { e = 2 } }, f = 3 }
                                     } } }
-                markup(t)
+                blaze(t)
                 assert.is.equal("part", t.a.parts[1].key)
                 assert.is.equal(3, t.a.parts[2].c.d.part.f)
                 assert.is.equal(2, #t.a.parts[2].c.d.parts)
             end)
             it("uses the singular key for elements in an multidimensional array", function()
-                local markup = require("markup")(
+                local blaze = require("blaze")(
                     { ownership = { element = "elements"} })
                 local matrix = { elements = { 
                                     { { 1, 2, 3 }, { 4, 5, 6 } }
                                  }}
-                markup(matrix)
+                blaze(matrix)
                 assert.is.equal("element", matrix.elements[1][2].key)
                 assert.is.equal(matrix, matrix.elements[1][2].root)
             end)
         end)
-        describe("array markup for next/prev navigation", function()
+        describe("array blaze for next/prev navigation", function()
             it("add next and prev to array elements", function()
                 local t = { A = { { a=1 }, { a=2 }, { a=3 } } }
-                markup(t)
+                blaze(t)
 
                 assert.is.equal(t.A[2], t.A[1].next)
                 assert.is.equal(2, t.A[1].next.a)
@@ -184,14 +184,14 @@ describe("markup", function()
                 local t = {}
                 local t_mt = { __index = { x = 5 } }
                 setmetatable(t, t_mt)
-                markup(t)
+                blaze(t)
                 assert.is.equal("root", t.key)
                 assert.is.equal(5, t.x)
             end)
         end)
         describe("element ownership", function()
             it("must specify single ownership in diamond relationships", function()
-                local markup = require("markup")(
+                local blaze = require("blaze")(
                     { ownership = { a = "A" } })
 
                 local a = { }
@@ -199,12 +199,12 @@ describe("markup", function()
                     A = { a = a },
                     B = { a = a },
                 }
-                markup(t)
+                blaze(t)
                 assert.is.equal(t.A, t.A.a.parent)
                 assert.is.equal(t.A, t.B.a.parent)
             end)
             it("can specify ownership with mixed/cross elements", function()
-                local markup = require("markup")(
+                local blaze = require("blaze")(
                     { ownership = { a = "A", b = "B"} })
 
                 local a = { }
@@ -213,14 +213,14 @@ describe("markup", function()
                     A = { a = a, b = b },
                     B = { a = a, b = b },
                 }
-                markup(t)
+                blaze(t)
                 assert.is.equal(t.A, t.A.a.parent)
                 assert.is.equal(t.A, t.B.a.parent)
                 assert.is.equal(t.B, t.B.b.parent)
                 assert.is.equal(t.B, t.A.b.parent)
             end)
             it("can establish ownership in arrays", function()
-                local markup = require("markup")(
+                local blaze = require("blaze")(
                     { ownership = { b = "B"} })
 
                 local x = { }
@@ -228,7 +228,7 @@ describe("markup", function()
                 local t = { x, y, { A = { x, y } }, 
                                   { B = { x, y } }, 
                                   { C = { x, y } } }
-                markup(t)
+                blaze(t)
                 assert.is.equal(t[4].B, t[4].B[1].parent)
                 assert.is.equal(t[4].B, t[4].B[2].parent)
 
@@ -248,7 +248,7 @@ describe("markup", function()
                 x = { "x" },
                 y = { "y" },
             }
-            markup(t)
+            blaze(t)
 
             it("puts children in array, from array first, then from table ", function()
                 assert.is.equal(t[1], t.children[1])
@@ -264,21 +264,21 @@ describe("markup", function()
                 local key_t = {}
                 local t = { a = { [key_t] = { c = 4 } } }
 
-                assert.is.error(function() markup(t) end, 
+                assert.is.error(function() blaze(t) end, 
                     "Invalid key of type table, in element 'a'")
             end)
             it("errors out when the input table has a function key", function()
                 local key_fn = function() end
                 local t = { [key_fn] = { b = { c = 4 } } }
 
-                assert.is.error(function() markup(t) end, 
+                assert.is.error(function() blaze(t) end, 
                     "Invalid key of type function, in element 'root'")
             end)
         end)
     end)
     describe("name-clashing avoidance", function()
-        describe("markup aliasing", function()
-            local markup = require("markup"){
+        describe("blaze aliasing", function()
+            local blaze = require("blaze"){
                 key_alias = "name",
                 children_alias = "elements",
                 parent_alias = "up",
@@ -288,7 +288,7 @@ describe("markup", function()
             }
             local t = { a = { b = { c = 4 } },
                         d = { {1}, {2}, {3} } }
-            markup(t)
+            blaze(t)
 
             it("uses custom key accessor", function()
                 assert.is.equal("b", t.a.b.name)
@@ -313,16 +313,16 @@ describe("markup", function()
             end)
         end)
         it("errors when the original tree/table has a conflicting element", function()
-            local markup = require("markup")()
+            local blaze = require("blaze")()
             local t = { a = { key = { c = 4 } } }
 
-            assert.is.error(function() markup(t) end, 
-                "Key 'key' clashes with markup key, in element 'a'. Use constructor to override markup words/keys")
+            assert.is.error(function() blaze(t) end, 
+                "Key 'key' clashes with blaze key, in element 'a'. Use constructor to override blaze words/keys")
 
             local t2 = { a = { b = { parent = 4 } } }
 
-            assert.is.error(function() markup(t2) end, 
-                "Key 'parent' clashes with markup key, in element 'b'. Use constructor to override markup words/keys")
+            assert.is.error(function() blaze(t2) end, 
+                "Key 'parent' clashes with blaze key, in element 'b'. Use constructor to override blaze words/keys")
         end)
     end)
     describe("deblazing", function()
@@ -336,8 +336,8 @@ describe("markup", function()
             assert.is.equal("old_root", t.root)
             assert.is.equal(mt, getmetatable(t))
 
-            local markup, deblaze = require("markup")()
-            markup(t)
+            local blaze, deblaze = require("blaze")()
+            blaze(t)
 
             assert.is_not.equal(mt, getmetatable(t))
 
