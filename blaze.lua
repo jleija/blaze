@@ -1,3 +1,11 @@
+local function simple_table_to_string(t)
+    local out = {}
+    for k, v in pairs(t) do
+        table.insert(out, k .. " = " .. tostring(v))
+    end
+    return "{" .. table.concat(out, ", ") .. "}"
+end
+
 local function is_empty(t)
     for _, _ in pairs(t) do
         return false
@@ -5,8 +13,74 @@ local function is_empty(t)
     return true
 end
 
+local function resolve_refs(t, ref_spec)
+    local m = require("match")
+    local V = m.namespace().vars
+    local matched_refs, captured_refs = 
+            m.match_all({ [V.ref_var] = {[ref_spec.tag] = V.pattern(m.is_table) } }, t)
+
+    local old_refs = {}
+
+    local function restore_old_refs()
+        for i, ref in ipairs(old_refs) do
+            matched_refs[i][captured_refs[i].ref_var] = ref
+        end
+    end
+
+    for i, vars in ipairs(captured_refs) do
+        local matched_ref = matched_refs[i]
+        local old_ref = matched_ref[vars.ref_var]
+        table.insert(old_refs, old_ref)
+        matched_ref[vars.ref_var] = nil -- remove the reference itself
+
+        local ref_on_missing_fn = vars.pattern.on_missing
+        local ref_on_duplicate_fn = vars.pattern.on_duplicate
+        vars.pattern.on_missing = nil
+        vars.pattern.on_duplicate = nil
+        local elements = m.match_all(vars.pattern, t)
+        if #elements > 1 then
+            local dup_fn = ref_on_duplicate_fn or ref_spec.on_duplicate
+            assert(type(dup_fn) == "function", "ref on_duplicate is not a function")
+            restore_old_refs()
+            vars.pattern.on_duplicate = ref_on_duplicate_fn
+            dup_fn(vars.pattern)
+            return nil
+        elseif #elements == 0 then
+            local missing_fn = ref_on_missing_fn or ref_spec.on_missing
+            assert(type(missing_fn) == "function", "ref on_missing is not a function: " .. simple_table_to_string(matched_ref) )
+            restore_old_refs()
+            vars.pattern.on_missing = ref_on_missing_fn
+            missing_fn(vars.pattern)
+            return nil
+        end
+
+        local element = elements[1]
+
+        matched_ref[vars.ref_var] = element
+    end
+    return t
+end
+
+local function default_on_missing(ref_spec)
+    error("could not find reference " .. simple_table_to_string(ref_spec))
+end
+
+local function default_on_duplicate(ref_spec)
+    error("found multiple matching elements for reference " .. simple_table_to_string(ref_spec))
+end
+
 local function new_blaze(config)
     config = config or {}
+
+    if config.ref then
+        assert(config.ref.tag, "A tag key must be provided to lookup references. Like tag='ref'")
+        config.ref.on_missing = config.ref.on_missing or default_on_missing
+        config.ref.on_duplicate = config.ref.on_duplicate or default_on_duplicate
+
+        assert(type(config.ref.on_missing) == "function", "reference config for on_missing must be a function (takes a ref-spec)")
+        assert(type(config.ref.on_missing) == "function", "reference config for on_missing must be a function (takes a ref-spec)")
+    end
+
     -- nil gets defaulted and false is for not including it in metatable
     local key_alias = config.key_alias 
                       or config.key_alias == nil and "key" 
@@ -46,6 +120,12 @@ local function new_blaze(config)
 
     local function blaze(t, key, parent)
         assert(type(t) == "table")
+
+        if config.ref then
+            if not resolve_refs(t, config.ref) then
+                return nil
+            end
+        end
 
         local marked = {}
 

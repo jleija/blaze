@@ -239,6 +239,127 @@ describe("blaze", function()
                 assert.is.equal(t[4].B, t[2].parent)
             end)
         end)
+        describe("resolution of references", function()
+            -- explicit reference config in necessary
+            -- otherwise no reference resolution is attempted
+            local blaze = require("blaze")( { 
+                    ref = { 
+                        tag = "ref", 
+                        on_missing = function(ref_element)
+                            error("Could not find reference " .. ref_element.name)
+                        end 
+                    } 
+            })
+            it("resolves pending references in a tree to make it a circular tree/table", function()
+                local t = { A = { a = { name = "one", other = 5 } },
+                            B = { x = { ref = { name = "one" } } } }
+
+                blaze(t)
+                assert.is.equal(t.A.a, t.B.x)
+                assert.is.equal(t.A, t.B.x.parent)
+            end)
+            it("does not resolve references when no ref config is given", function()
+                local blaze = require("blaze")()
+                local t = { A = { a = { name = "one", other = 5 } },
+                            B = { x = { ref = { name = "one" } } } }
+
+                blaze(t)
+                assert.is.truthy(t.B.x.ref)
+                assert.is.not_equal(t.A.a, t.B.x)
+            end)
+            it("calls on_missing given function when a reference is missing. Table is unchanged", function()
+                local failed_ref
+                local blaze = require("blaze"){
+                    ref = {
+                        tag = "ref",
+                        on_missing = function(ref_element) 
+                            failed_ref = ref_element.name
+                        end
+                    }
+
+                }
+                local t = { A = { a = { name = "one", other = 5 } },
+                            B = { x = { ref = { name = "two" } } } }
+
+                local res = blaze(t)
+                assert.is.falsy(res)
+                assert.is.equal("two", failed_ref)
+                assert.is.equal("two", t.B.x.ref.name)
+            end)
+            it("calls on_duplicate given function when there is more than one match for a reference. Table is unchanged", function()
+                local failed_ref
+                local blaze = require("blaze"){
+                    ref = {
+                        tag = "ref",
+                        on_duplicate = function(ref_element) 
+                            failed_ref = ref_element.name
+                        end
+                    }
+
+                }
+                local t = { A = { a = { name = "one", other = 5 } },
+                            A2 = { a = { name = "one", other = 3 } },
+                            B = { x = { ref = { name = "one" } } } }
+
+                local res = blaze(t)
+                assert.is.falsy(res)
+                assert.is.equal("one", failed_ref)
+                assert.is.equal("one", t.B.x.ref.name)
+            end)
+
+            -- TODO: do we still want to locate all reference errors and 
+            -- report them at once?
+            it("calls on_missing function in the reference itself, when given", function()
+                local failed_ref
+                local on_missing = function(ref_element) 
+                                        failed_ref = ref_element.name
+                                    end
+
+                local blaze = require("blaze"){ ref = { tag = "ref" } }
+                local t = { A = { a = { name = "one", other = 5 } },
+                            B = { x = { 
+                                ref = { 
+                                    name = "two",
+                                    on_missing = on_missing
+                          } } } }
+
+                local res = blaze(t)
+                assert.is.falsy(res)
+                assert.is.equal("two", failed_ref)
+                assert.is.equal("two", t.B.x.ref.name)
+                assert.is.equal(on_missing, t.B.x.ref.on_missing)
+            end)
+            it("calls on_duplicate function in the reference itself, when given", function()
+                local failed_ref
+                local on_duplicate = function(ref_element) 
+                                        failed_ref = ref_element.name
+                                    end
+
+                local blaze = require("blaze"){ ref = { tag = "ref" } }
+                local t = { A = { a = { name = "one", other = 5 } },
+                            A2 = { a = { name = "one", other = 3 } },
+                            B = { x = { 
+                                ref = { 
+                                    name = "one",
+                                    on_duplicate = on_duplicate
+                          } } } }
+
+                local res = blaze(t)
+                assert.is.falsy(res)
+                assert.is.equal("one", failed_ref)
+                assert.is.equal("one", t.B.x.ref.name)
+                assert.is.equal(on_duplicate, t.B.x.ref.on_duplicate)
+            end)
+            it("can configure the reference tag/name other than ref", function()
+                local blaze = require("blaze"){ ref = { tag = "link" } }
+                local t = { A = { a = { name = "one", other = 5 } },
+                            B = { x = { link = { name = "one" } } } }
+
+                blaze(t)
+                assert.is.equal(t.A.a, t.B.x)
+                assert.is.equal(t.A, t.B.x.parent)
+            end)
+        end)
         describe("children sorting", function()
             local t = {
                 { a = 1 },
