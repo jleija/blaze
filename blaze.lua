@@ -142,10 +142,15 @@ local function new_blaze(config)
                 local mt = {
                     marked = marked,
                     old_mt = old_mt,
+                    color = config.color,
                     __index = {}
                 }
-                if root_alias and not parent then
-                    mt.__index[root_alias] = t
+                if root_alias then
+                    if parent then
+                        mt.__index[root_alias] = parent[root_alias]
+                    else
+                        mt.__index[root_alias] = t
+                    end
                 end
                 if key_alias and type(key) == "string" then
                     mt.__index[key_alias] = key
@@ -212,6 +217,16 @@ local function new_blaze(config)
                             local p = t
                             while p and p[key_alias] ~= k do
                                 p = p[parent_alias]
+                            end
+                            if not p and mt.old_mt then
+                                if type(mt.old_mt.__index) == "table" then
+                                    return mt.old_mt.__index[k]
+                                elseif type(mt.old_mt.__index) == "function" then
+                                    return mt.old_mt.__index(t, k)
+                                else
+                                    error("invalid type for mt.__index: " 
+                                            .. type(mt.old_mt.__index))
+                                end
                             end
                             return p
                         end

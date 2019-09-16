@@ -47,7 +47,7 @@ describe("blaze", function()
                 assert.is.equal(t.a.b, t.a.b.parent.b.parent.b)
                 assert.is.equal(t, t.a.b.parent.parent)
             end)
-            it("sets #root access all across", function()
+            it("sets root access all across", function()
                 assert.is.equal(t, t.a.b.root)
                 assert.is.equal(t, t.a.root)
                 assert.is.equal(t, t.root)
@@ -475,6 +475,49 @@ describe("blaze", function()
 
             assert.is.equal(mt, getmetatable(t))
             assert.is.equal(mt, getmetatable(t.a))
+        end)
+    end)
+    describe("multiple blazing", function()
+        local t1 = { a = { b = 4 } }
+        local t2 = { x = { y = 5 } }
+        local T = { A = { B = t1 }, X = { Y = t2 } }
+
+        local blaze1 = require("blaze"){
+            children_alias = false,
+            color = "blue"
+        }
+        blaze1(t1)
+        assert.is.equal(t1, t1.a.root)
+
+        local blaze2 = require("blaze"){
+            root_key_alias = "doc",
+            children_alias = false,
+            color = "red"
+        }
+        blaze2(t2)
+
+        local big_blaze = require("blaze"){
+            root_key_alias = "top",
+            parent_alias = "up",
+            children_alias = false,
+            color = "white"
+        }
+
+        big_blaze(T)
+
+        it("preserves individual tree blazing for their respective roots", function()
+            assert.is.equal(T, T.A.B.a.top)
+            assert.is.equal(t1, T.A.B.a.root)
+            assert.is.equal(t2, T.X.Y.x.doc)
+
+            assert.is.equal(T, t1.a.top)
+            assert.is.equal(T, t2.x.top)
+        end)
+        it("can have multiple synonyms for to parents", function()
+            assert.is.equal(t1.a.parent, t1.a.up)
+            assert.is_nil(t1.parent)
+            assert.is.equal(T.A, t1.up)
+            assert.is.equal("B", t1.key)
         end)
     end)
 end)
