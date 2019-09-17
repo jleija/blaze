@@ -94,6 +94,10 @@ local function new_blaze(config)
                         or config.next_alias == nil and "next"
     local prev_alias = config.prev_alias 
                         or config.prev_alias == nil and "prev"
+    local first_alias = config.first_alias 
+                        or config.first_alias == nil and "first"
+    local last_alias = config.last_alias 
+                        or config.last_alias == nil and "last"
 
     local ownership = config.ownership or {}
     local id_tags = config.id_tags or {}
@@ -209,6 +213,10 @@ local function new_blaze(config)
                 end
                 if children_alias then
                     mt.__index[children_alias] = {}
+                end
+                if t[1] then    -- is array with at least one element?
+                    mt.__index[first_alias] = t[1]
+                    mt.__index[last_alias] = t[#t]
                 end
                 setmetatable(t, mt)
                 if parent then
