@@ -8,9 +8,8 @@ describe("blaze", function()
 
             assert.is.equal("root", t.key)
             assert.is.equal("root", t.root.key)
-            assert.is.truthy(t.children)
+            assert.is.falsy(t.children)
             assert.is.falsy(t.parent)
-            assert(0, #t.children)
         end)
 
         it("can mark circular tables", function()
@@ -23,6 +22,9 @@ describe("blaze", function()
             assert.is.equal("root", t.key)
         end)
         describe("a deeper table", function()
+            local blaze = require("blaze"){
+                children_alias = "children" -- enable children blazing
+            }
             local t = { a = { b = { c = 4 } } }
             blaze(t)
 
@@ -368,6 +370,9 @@ describe("blaze", function()
             end)
         end)
         describe("children sorting", function()
+            local blaze = require("blaze"){
+                children_alias = "children" -- enable children blazing
+            }
             local t = {
                 { a = 1 },
                 { b = 2 },
@@ -378,6 +383,11 @@ describe("blaze", function()
             }
             blaze(t)
 
+            it("has no children for an empty table", function()
+                local t = {}
+                blaze(t)
+                assert.is.equal(0, #t.children)
+            end)
             it("puts children in array, from array first, then from table ", function()
                 assert.is.equal(t[1], t.children[1])
                 assert.is.equal(t[2], t.children[2])

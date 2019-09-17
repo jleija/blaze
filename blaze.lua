@@ -87,7 +87,6 @@ local function new_blaze(config)
     local parent_alias = config.parent_alias 
                          or config.parent_alias == nil and "parent" 
     local children_alias = config.children_alias 
-                           or config.children_alias == nil and "children" 
     local root_alias = config.root_key_alias 
                         or config.root_key_alias == nil and "root"
     local next_alias = config.next_alias 
@@ -111,6 +110,11 @@ local function new_blaze(config)
     if key_alias then reserved_keys[key_alias] = true end
     if parent_alias then reserved_keys[parent_alias] = true end
     if children_alias then reserved_keys[children_alias] = true end
+    if root_alias then reserved_keys[root_alias] = true end
+    if next_alias then reserved_keys[next_alias] = true end
+    if prev_alias then reserved_keys[prev_alias] = true end
+    if first_alias then reserved_keys[first_alias] = true end
+    if last_alias then reserved_keys[last_alias] = true end
 
     local function is_plural_ancestor(parent)
         while parent do
