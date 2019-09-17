@@ -164,6 +164,20 @@ describe("blaze", function()
                 assert.is.equal("element", matrix.elements[1][2].key)
                 assert.is.equal(matrix, matrix.elements[1][2].root)
             end)
+            it("respects/excludes existing blazes in user struct when config blazes are provided", function()
+
+                local blaze = require("blaze"){
+                    preexisting_blazes = { "link" }
+                }
+                local t = { A = { name = "A", 
+                                  link = {
+                                      B = { name = "B" }
+                                  } } }
+
+                blaze(t)
+                assert.is_nil(t.A.link.B.link)
+                assert.is.equal(t.A, t.A.link.B.A)
+            end)
         end)
         describe("array blaze for next/prev/first/last navigation", function()
             it("add next and prev to array elements", function()

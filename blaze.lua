@@ -13,7 +13,7 @@ local function is_empty(t)
     return true
 end
 
-local function resolve_refs(t, ref_spec)
+local function resolve_refs(t, ref_spec)    -- {{{
     local m = require("match")
     local V = m.namespace().vars
     local matched_refs, captured_refs = 
@@ -59,7 +59,7 @@ local function resolve_refs(t, ref_spec)
         matched_ref[vars.ref_var] = element
     end
     return t
-end
+end     -- }}}
 
 local function default_on_missing(ref_spec)
     error("could not find reference " .. simple_table_to_string(ref_spec))
@@ -100,6 +100,13 @@ local function new_blaze(config)
 
     local ownership = config.ownership or {}
     local id_tags = config.id_tags or {}
+
+    local preexisting_blazes = {}
+    if config.preexisting_blazes then
+        for _, blaze in ipairs(config.preexisting_blazes) do
+            preexisting_blazes[blaze] = true
+        end
+    end
 
     local plurals = {}
     for owned, owner in pairs(ownership) do
@@ -226,6 +233,11 @@ local function new_blaze(config)
                 if parent then
                     local mt_mt = {
                         __index = function(t, k)
+                            if preexisting_blazes[k] then 
+                                -- don't attempt upwards search if the key
+                                -- is a known/existing blaze
+                                return nil
+                            end
                             local p = t
                             while p and p[key_alias] ~= k do
                                 p = p[parent_alias]
