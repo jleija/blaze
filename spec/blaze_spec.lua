@@ -281,6 +281,17 @@ describe("blaze", function()
                 assert.is.equal(t.A.a, t.B.x)
                 assert.is.equal(t.A, t.B.x.parent)
             end)
+            it("can resolve multiple pending references in a tree without confusing newly resolved references with the original", function()
+                local t = { A = { a = { name = "one", other = 5 } },
+                            B = { x = { ref = { name = "one" } } }, 
+                            C = { x = { ref = { name = "one" } } }
+                          }
+
+                blaze(t)
+                assert.is.equal(t.A.a, t.B.x)
+                assert.is.equal(t.A, t.B.x.parent)
+                assert.is.equal(t.A, t.C.x.parent)
+            end)
             it("does not resolve references when no ref config is given", function()
                 local blaze = require("blaze")()
                 local t = { A = { a = { name = "one", other = 5 } },

@@ -27,17 +27,31 @@ local function resolve_refs(t, ref_spec)    -- {{{
         end
     end
 
+    local matched_elements = {}
     for i, vars in ipairs(captured_refs) do
         local matched_ref = matched_refs[i]
         local old_ref = matched_ref[vars.ref_var]
         table.insert(old_refs, old_ref)
-        matched_ref[vars.ref_var] = nil -- remove the reference itself
 
         local ref_on_missing_fn = vars.pattern.on_missing
         local ref_on_duplicate_fn = vars.pattern.on_duplicate
         vars.pattern.on_missing = nil
         vars.pattern.on_duplicate = nil
-        local elements = m.match_all(vars.pattern, t)
+        local all_elements = m.match_all(vars.pattern, t)
+        -- remove all the reference nodes
+        local elements = {}
+        for i, element in ipairs(all_elements) do
+            local found_ref = false
+            for i, ref in ipairs(captured_refs) do
+                if ref.pattern == element then
+                    found_ref = true
+                    break
+                end
+            end
+            if not found_ref then
+                table.insert(elements, element)
+            end
+        end
         if #elements > 1 then
             local dup_fn = ref_on_duplicate_fn or ref_spec.on_duplicate
             assert(type(dup_fn) == "function", "ref on_duplicate is not a function")
@@ -54,9 +68,14 @@ local function resolve_refs(t, ref_spec)    -- {{{
             return nil
         end
 
-        local element = elements[1]
-
-        matched_ref[vars.ref_var] = element
+        table.insert(matched_elements, {
+                        var = vars.ref_var,
+                        element = elements[1]
+                    })
+    end
+    -- finally, replace all references to their resolved element
+    for i, var_and_element in ipairs(matched_elements) do
+        matched_refs[i][var_and_element.var] = var_and_element.element
     end
     return t
 end     -- }}}
